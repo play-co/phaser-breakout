@@ -1,15 +1,12 @@
 
 var game;
 exports.load = function(width, height, canvas) {
-    console.log('Making game...');
     game = new Phaser.Game(width, height, Phaser.CANVAS, '', { preload: preload, create: create, update: update });
     game.setCanvas(canvas);
-    console.log('Done making game!');
     return game;
 }
 
 function preload() {
-console.log('Preloading...')
     game.load.image('starfield', 'resources/assets/misc/starfield.png');
     game.load.image('ball', 'resources/assets/games/breakout/ball.png');
     game.load.image('brick0', 'resources/assets/games/breakout/brick0.png');
@@ -19,7 +16,6 @@ console.log('Preloading...')
     game.load.image('brick4', 'resources/assets/games/breakout/brick4.png');
     game.load.image('brick5', 'resources/assets/games/breakout/brick5.png');
     game.load.image('paddle', 'resources/assets/games/breakout/paddle.png');
-    //game.load.atlas('breakout', 'resources/assets/games/breakout/breakout.png', 'resources/assets/games/breakout/breakout.json');
 }
 
 var ball;
@@ -38,7 +34,6 @@ var introText;
 var s;
 
 function create() {
-console.log('Booting...');
 
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
