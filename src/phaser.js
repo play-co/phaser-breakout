@@ -7,7 +7,7 @@
 *
 * Phaser - http://phaser.io
 *
-* v2.2.2 "Alkindar" - Built: Mon Feb 09 2015 11:51:10
+* v2.2.2 "Alkindar" - Built: Mon Feb 16 2015 19:31:47
 *
 * By Richard Davey http://www.photonstorm.com @photonstorm
 *
@@ -3146,19 +3146,18 @@ PIXI.Text.prototype._renderCanvas = function(renderSession)
 PIXI.Text.prototype.determineFontProperties = function(fontStyle)
 {
     var properties = PIXI.Text.fontPropertiesCache[fontStyle];
+    console.log('FoNT call');
 
     if(!properties)
     {
         if (PIXI.DEVKIT_NATIVE)
         {
-            // TODO actual implementation
-            //      If devkit gets around to implementing context.getImageData,
-            //      then there may not be a need for this if/else block!
-            properties = {
-                ascent: 0,
-                descent: 0,
-                fontSize: 42 // It's as good as anything else!
-            };
+            var Font = jsio('import ui.resource.Font');
+            var font = new Font(fontStyle);
+
+            // TODO properly get ascent and descent
+            properties.ascent = font.getSize();
+            properties.descent = 0;
         }
         else
         {
@@ -3246,11 +3245,14 @@ PIXI.Text.prototype.determineFontProperties = function(fontStyle)
             properties.descent = i - baseline;
             //TODO might need a tweak. kind of a temp fix!
             properties.descent += 6;
-            properties.fontSize = properties.ascent + properties.descent;
-
-            PIXI.Text.fontPropertiesCache[fontStyle] = properties;
         }
+
+        properties.fontSize = properties.ascent + properties.descent;
+
+        PIXI.Text.fontPropertiesCache[fontStyle] = properties;
     }
+
+    console.log('FoNT ', properties);
 
     return properties;
 };
@@ -9392,7 +9394,8 @@ PIXI.CanvasTinter.roundColor = function(color)
  */
 PIXI.CanvasTinter.checkInverseAlpha = function()
 {
-    if (!PIXI.DEVKIT_NATIVE) {
+    if (!PIXI.DEVKIT_NATIVE)
+    {
         var canvas = new PIXI.CanvasBuffer(2, 1);
 
         canvas.context.fillStyle = "rgba(10, 20, 30, 0.5)";
@@ -9411,7 +9414,9 @@ PIXI.CanvasTinter.checkInverseAlpha = function()
 
         //  Compare and return
         return (s2.data[0] === s1.data[0] && s2.data[1] === s1.data[1] && s2.data[2] === s1.data[2] && s2.data[3] === s1.data[3]);
-    } else {
+    }
+    else
+    {
         return false;
     }
 };
@@ -12355,7 +12360,7 @@ PIXI.AbstractFilter.prototype.apply = function(frameBuffer)
 *
 * Phaser - http://phaser.io
 *
-* v2.2.2 "Alkindar" - Built: Mon Feb 09 2015 11:51:10
+* v2.2.2 "Alkindar" - Built: Mon Feb 16 2015 19:31:46
 *
 * By Richard Davey http://www.photonstorm.com @photonstorm
 *
@@ -26452,7 +26457,6 @@ Phaser.Game.prototype = {
     */
     boot: function () {
 
-        console.log("~~~ BOOTING");
         if (this.isBooted)
         {
             return;
@@ -26592,7 +26596,6 @@ Phaser.Game.prototype = {
     setUpRenderer: function () {
 
         if (this.__canvas) {
-            console.log("~~~ ALL GOOD");
             this.canvas = this.__canvas;
             if (!this.device.canvas)
             {
@@ -29390,7 +29393,7 @@ Phaser.Mouse.prototype = {
         this.game.canvas.addEventListener('mousemove', this._onMouseMove, true);
         this.game.canvas.addEventListener('mouseup', this._onMouseUp, true);
 
-        if (!this.game.device.cocoonJS && false)
+        if (!this.game.device.cocoonJS)
         {
             window.addEventListener('mouseup', this._onMouseUpGlobal, true);
             this.game.canvas.addEventListener('mouseover', this._onMouseOver, true);
@@ -45192,12 +45195,10 @@ Phaser.Device._readyCheck = function () {
 
     if (!document.body)
     {
-        console.log('Not ready :(');
         window.setTimeout(readyCheck._monitor, 20);
     }
     else if (!this.deviceReadyAt)
     {
-        console.log('Ready to go :D');
         this.deviceReadyAt = Date.now();
 
         document.removeEventListener('deviceready', readyCheck._monitor);
@@ -45208,12 +45209,10 @@ Phaser.Device._readyCheck = function () {
         this.initialized = true;
 
         this.onInitialized.dispatch(this);
-        console.log('your enemies have been dispatched with the utmost efficiency, my lord');
 
         var item;
         while ((item = readyCheck._queue.shift()))
         {
-            console.log('Calling something!');
             var callback = item[0];
             var context = item[1];
             callback.call(context, this);
@@ -45388,8 +45387,8 @@ Phaser.Device._initialize = function () {
     */
     function _checkFullScreenSupport () {
 
-        if (PIXI.DEVKIT_NATIVE) {
-            // Everything is kinda already fullscreen...
+        if (PIXI.DEVKIT_NATIVE)
+        {
             return false;
         }
 
@@ -45537,7 +45536,7 @@ Phaser.Device._initialize = function () {
         {
             device.cocoonJS = true;
         }
-
+        
         if (device.cocoonJS)
         {
             try {
@@ -45877,7 +45876,8 @@ Phaser.DOM = {
 
         point = point || new Phaser.Point();
 
-        if (element.getBoundingClientRect) {
+        if (element.getBoundingClientRect)
+        {
             var box = element.getBoundingClientRect();
 
             var scrollTop = Phaser.DOM.scrollY;
