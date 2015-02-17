@@ -3146,7 +3146,6 @@ PIXI.Text.prototype._renderCanvas = function(renderSession)
 PIXI.Text.prototype.determineFontProperties = function(fontStyle)
 {
     var properties = PIXI.Text.fontPropertiesCache[fontStyle];
-    console.log('FoNT call');
 
     if(!properties)
     {
@@ -3252,7 +3251,6 @@ PIXI.Text.prototype.determineFontProperties = function(fontStyle)
         PIXI.Text.fontPropertiesCache[fontStyle] = properties;
     }
 
-    console.log('FoNT ', properties);
 
     return properties;
 };
