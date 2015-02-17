@@ -1,10 +1,5 @@
 
-var game;
-exports.load = function(width, height, canvas) {
-    game = new Phaser.Game(width, height, Phaser.CANVAS, '', { preload: preload, create: create, update: update });
-    game.setCanvas(canvas);
-    return game;
-}
+var game = new Phaser.Game(1024, 512, Phaser.CANVAS, '', { preload: preload, create: create, update: update });
 
 function preload() {
     game.load.image('starfield', 'resources/assets/misc/starfield.png');
