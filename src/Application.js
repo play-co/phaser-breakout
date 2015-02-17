@@ -91,6 +91,9 @@ Phaser.Game = function() {
     addEventListenerAPI(GC.app.canvas);
     GC.app.spoofMouseEvents(GC.app, GC.app.canvas);
 
+    GC.app.canvas.style.width = '' + device.screen.width + 'px';
+    GC.app.canvas.style.height = '' + device.screen.height + 'px';
+
     game.setCanvas(GC.app.canvas);
     return game;
 };
@@ -104,6 +107,8 @@ exports = Class(GC.Application, function () {
 
     this.initUI = function () {
         this._gameLoaded = false;
+        this.scalex = 1;
+        this.scaley = 1;
 
         // Leave the clearing to pixi
         this.engine.updateOpts({
@@ -119,13 +124,12 @@ exports = Class(GC.Application, function () {
     };
 
     this.spoofMouseEvents = function(view, canvas) {
-        console.log('asdfasdfasdfasdfasdf');
-        function makeMouseEvent(evt) {
+        var makeMouseEvent = function (evt) {
             evt.preventDefault = function() {};
             evt.changedTouches = [];
-            evt.pageX = evt.screenX = evt.clientX = evt.pt[1].x;
-            evt.pageY = evt.screenY = evt.clientY = evt.pt[1].y;
-        }
+            evt.pageX = evt.screenX = evt.clientX = evt.pt[1].x * this.scalex;
+            evt.pageY = evt.screenY = evt.clientY = evt.pt[1].y * this.scaley;
+        }.bind(this);
 
         // Spoof mouse events with devkit input functions
         view.onInputSelect = function(evt, pt) {
@@ -179,7 +183,6 @@ exports = Class(GC.Application, function () {
         if (!this._gameLoaded) {
             setTimeout(function() {
                 import .game;
-                logger.log('game loaded!');
             }.bind(this), 0);
             this._gameLoaded = true;
         }
@@ -188,5 +191,24 @@ exports = Class(GC.Application, function () {
     this.getRootView = function() {
         return config.useWeeby ? weeby.getGameView() : this.view;
     };
+
+    this.tick = function(dt) {
+        if (this.canvas) {
+            var scr = device.screen;
+            var canvas = this.canvas;
+            var style = canvas.style;
+
+            var wpx = scr.width + 'px';
+            var hpx = scr.height + 'px';
+
+            if (wpx !== style.width || hpx !== style.height) {
+                style.width  = wpx;
+                style.height = hpx;
+
+                this.scalex = canvas.width / scr.width;
+                this.scaley = canvas.height / scr.height;
+            }
+        }
+    }
 });
 
