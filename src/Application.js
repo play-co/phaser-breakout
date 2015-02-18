@@ -72,6 +72,7 @@ var construct = function(constructor, args) {
 // Hook Phaser.Game
 var phaser_game = Phaser.Game;
 Phaser.Game = function() {
+    var app = GC.app;
     var width  = arguments[0] || 800;
     var height = arguments[1] || 600;
 
@@ -81,20 +82,16 @@ Phaser.Game = function() {
     var game = construct(phaser_game, arguments);
 
     // Get the main canvas and add event listener to it
-    if (device.isMobileNative) {
-      GC.app.canvas = GC.app.engine.getCanvas();
-    } else {
-      var canvasView = GC.app.makeCanvasBackedView(width, height);
-      GC.app.canvas = canvasView.getCanvas();
-    }
+    var canvasView = GC.app.makeCanvasBackedView(width, height);
+    app.canvas = canvasView.getCanvas();
 
-    addEventListenerAPI(GC.app.canvas);
-    GC.app.spoofMouseEvents(GC.app, GC.app.canvas);
+    addEventListenerAPI(app.canvas);
+    app.spoofMouseEvents(app, app.canvas);
 
-    GC.app.canvas.style.width = '' + device.screen.width + 'px';
-    GC.app.canvas.style.height = '' + device.screen.height + 'px';
+    app.game_width  = width;
+    app.game_height = height;
 
-    game.setCanvas(GC.app.canvas);
+    game.setCanvas(app.canvas);
     return game;
 };
 
@@ -135,10 +132,13 @@ exports = Class(GC.Application, function () {
         view.onInputSelect = function(evt, pt) {
             makeMouseEvent(evt);
             canvas.publishEvent('mouseup', evt);
+            canvas.publishEvent('touchend', evt);
+            canvas.publishEvent('click', evt);
         };
         view.onInputStart = function(evt, pt) {
             makeMouseEvent(evt);
             canvas.publishEvent('mousedown', evt);
+            canvas.publishEvent('touchstart', evt);
         };
         view.onInputMove = function(evt) {
             evt.pt = evt.point; // FIXME this seems like a inconsistency in devkit...
@@ -156,7 +156,8 @@ exports = Class(GC.Application, function () {
         var iv = new View({
             image: image,
             width: rootView.style.width,
-            height: rootView.style.height
+            height: rootView.style.height,
+            parent: this.getRootView()
         });
         iv.render = function(ctx) {
             image.render(ctx, 0, 0, width, height, 0, 0, this.style.width, this.style.height);
@@ -193,20 +194,22 @@ exports = Class(GC.Application, function () {
     };
 
     this.tick = function(dt) {
+        // TODO this should probably be in an "on resize" function
         if (this.canvas) {
             var scr = device.screen;
-            var canvas = this.canvas;
-            var style = canvas.style;
 
-            var wpx = scr.width + 'px';
-            var hpx = scr.height + 'px';
+            if (scr.width != this.last_width || scr.height != this.last_height) {
+                this.last_width = scr.width;
+                this.last_height = scr.height;
 
-            if (wpx !== style.width || hpx !== style.height) {
-                style.width  = wpx;
-                style.height = hpx;
+                if (scr.width > scr.height) {
+                    this.engine.scaleUI(scr.height, scr.width);
+                } else {
+                    this.engine.scaleUI(scr.width, scr.height);
+                }
 
-                this.scalex = canvas.width / scr.width;
-                this.scaley = canvas.height / scr.height;
+                this.scalex = this.game_width / scr.width;
+                this.scaley = this.game_height / scr.height;
             }
         }
     }
