@@ -58,58 +58,87 @@ if (!document.addEventListener) {
 }
 
 import .phaser;
-import .game;
+import .config;
 
-var USE_WEEBY = false;
-if (USE_WEEBY) { jsio('import weeby'); }
+// For apply on 'new' keyword
+var construct = function(constructor, args) {
+    function F() {
+        return constructor.apply(this, args);
+    }
+    F.prototype = constructor.prototype;
+    return new F();
+}
+
+// Hook Phaser.Game
+var phaser_game = Phaser.Game;
+Phaser.Game = function() {
+    var app = GC.app;
+    var width  = arguments[0] || 800;
+    var height = arguments[1] || 600;
+
+    // For now force a canvas backend
+    arguments[2] = Phaser.CANVAS;
+
+    var game = construct(phaser_game, arguments);
+
+    // Get the main canvas and add event listener to it
+    var canvasView = GC.app.makeCanvasBackedView(width, height);
+    app.canvas = canvasView.getCanvas();
+
+    addEventListenerAPI(app.canvas);
+    app.spoofMouseEvents(app, app.canvas);
+
+    app.game_width  = width;
+    app.game_height = height;
+
+    game.setCanvas(app.canvas);
+    return game;
+};
+
+// Import weeby?
+if (config.useWeeby) {
+    jsio('import ' + (config.weebyModuleName || 'weeby'));
+}
 
 exports = Class(GC.Application, function () {
 
     this.initUI = function () {
         this._gameLoaded = false;
-        this.game = null;
+        this.scalex = 1;
+        this.scaley = 1;
 
         // Leave the clearing to pixi
         this.engine.updateOpts({
             clearEachFrame: false
         });
 
-        // Get the main canvas and add event listener to it
-        if (device.isMobileNative) {
-          this._canvas = this.engine.getCanvas();
-        } else {
-          var _canvasView = this.makeCanvasBackedView(this.style.width, this.style.height);
-          this._canvas = _canvasView.getCanvas();
-        }
-
-        addEventListenerAPI(this._canvas);
-        this.spoofMouseEvents(this, this._canvas);
-
         GC.hidePreloader();
-        if (USE_WEEBY) {
+        if (config.useWeeby) {
             weeby.on('StartGame', bind(this, 'startGame'));
         } else {
             this.startGame();
         }
-
     };
 
     this.spoofMouseEvents = function(view, canvas) {
-        function makeMouseEvent(evt) {
+        var makeMouseEvent = function (evt) {
             evt.preventDefault = function() {};
             evt.changedTouches = [];
-            evt.pageX = evt.screenX = evt.clientX = evt.pt[1].x;
-            evt.pageY = evt.screenY = evt.clientY = evt.pt[1].y;
-        }
+            evt.pageX = evt.screenX = evt.clientX = evt.pt[1].x * this.scalex;
+            evt.pageY = evt.screenY = evt.clientY = evt.pt[1].y * this.scaley;
+        }.bind(this);
 
         // Spoof mouse events with devkit input functions
         view.onInputSelect = function(evt, pt) {
             makeMouseEvent(evt);
             canvas.publishEvent('mouseup', evt);
+            canvas.publishEvent('touchend', evt);
+            canvas.publishEvent('click', evt);
         };
         view.onInputStart = function(evt, pt) {
             makeMouseEvent(evt);
             canvas.publishEvent('mousedown', evt);
+            canvas.publishEvent('touchstart', evt);
         };
         view.onInputMove = function(evt) {
             evt.pt = evt.point; // FIXME this seems like a inconsistency in devkit...
@@ -122,12 +151,13 @@ exports = Class(GC.Application, function () {
         var Canvas = device.get('Canvas');
         var canvas = new Canvas({ width: width, height: height });
         var image = new Image({ srcImage: canvas});
-        // // var rootView = weeby.getGameView();
-        var rootView = this;
+        var rootView = this.getRootView();
+
         var iv = new View({
             image: image,
             width: rootView.style.width,
-            height: rootView.style.height
+            height: rootView.style.height,
+            parent: this.getRootView()
         });
         iv.render = function(ctx) {
             image.render(ctx, 0, 0, width, height, 0, 0, this.style.width, this.style.height);
@@ -140,43 +170,48 @@ exports = Class(GC.Application, function () {
     };
 
     this.launchUI = function () {
-        console.log('in launchUI')
-        // We need this function to start the phaser boot process, otherwise it
-        // will be waiting for the DOM that doesn't really exist
         // NOTE: Because of how devkit handles the canvas on native, the set
-        // timeout is requored so that there is 1 tick between creation and usage
+        // timeout is required so that there is 1 tick between creation and usage
         if (device.isMobileNative) {
-          setTimeout(function(){
-            document.publishEvent('DOMContentLoaded');
-          /*    if (game.boot) {
-                  console.log('calling boot');
-                  game.boot();
-              } else {
-                  console.error("Game has no boot function - native start will hang.");
-              }*/
-          }.bind(this), 0);
+            setTimeout(function(){
+                // This starts the phaser boot sequence
+                document.publishEvent('DOMContentLoaded');
+            }.bind(this), 0);
         }
     };
 
     this.startGame = function() {
-        console.log('in startGame');
         if (!this._gameLoaded) {
             setTimeout(function() {
-                if (game.load) {
-                    this.game = game.load(this.style.width, this.style.height, this._canvas);
-                    logger.log('game loaded!');
-                } else {
-                    console.error("Game has no load function - how will the canvas be set?");
-                }
+                import .game;
             }.bind(this), 0);
             this._gameLoaded = true;
-        } else {
-            game.resume();
         }
     };
 
     this.getRootView = function() {
-        return USE_WEEBY ? weeby.getGameView() : this.view;
+        return config.useWeeby ? weeby.getGameView() : this.view;
     };
+
+    this.tick = function(dt) {
+        // TODO this should probably be in an "on resize" function
+        if (this.canvas) {
+            var scr = device.screen;
+
+            if (scr.width != this.last_width || scr.height != this.last_height) {
+                this.last_width = scr.width;
+                this.last_height = scr.height;
+
+                if (scr.width > scr.height) {
+                    this.engine.scaleUI(scr.height, scr.width);
+                } else {
+                    this.engine.scaleUI(scr.width, scr.height);
+                }
+
+                this.scalex = this.game_width / scr.width;
+                this.scaley = this.game_height / scr.height;
+            }
+        }
+    }
 });
 
