@@ -7,7 +7,7 @@
 *
 * Phaser - http://phaser.io
 *
-* v2.2.2 "Alkindar" - Built: Mon Feb 16 2015 19:31:47
+* v2.2.2 "Alkindar" - Built: Tue Feb 17 2015 20:49:07
 *
 * By Richard Davey http://www.photonstorm.com @photonstorm
 *
@@ -3149,6 +3149,8 @@ PIXI.Text.prototype.determineFontProperties = function(fontStyle)
 
     if(!properties)
     {
+        properties = {};
+
         if (PIXI.DEVKIT_NATIVE)
         {
             var Font = jsio('import ui.resource.Font');
@@ -3160,8 +3162,6 @@ PIXI.Text.prototype.determineFontProperties = function(fontStyle)
         }
         else
         {
-            properties = {};
-
             var canvas = PIXI.Text.fontPropertiesCanvas;
             var context = PIXI.Text.fontPropertiesContext;
 
@@ -3250,7 +3250,6 @@ PIXI.Text.prototype.determineFontProperties = function(fontStyle)
 
         PIXI.Text.fontPropertiesCache[fontStyle] = properties;
     }
-
 
     return properties;
 };
@@ -12358,7 +12357,7 @@ PIXI.AbstractFilter.prototype.apply = function(frameBuffer)
 *
 * Phaser - http://phaser.io
 *
-* v2.2.2 "Alkindar" - Built: Mon Feb 16 2015 19:31:46
+* v2.2.2 "Alkindar" - Built: Tue Feb 17 2015 20:49:07
 *
 * By Richard Davey http://www.photonstorm.com @photonstorm
 *
