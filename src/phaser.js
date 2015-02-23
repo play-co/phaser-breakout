@@ -51531,10 +51531,11 @@ Phaser.Time.prototype = {
         this.elapsed = this.now - this.prevTime;
 
         // time to call this function again in ms in case we're using timers instead of RequestAnimationFrame to update the game
-        this.timeToCall = Math.floor(Math.max(0, (1000.0 / this.desiredFps) - (this.timeCallExpected - time)));
+        this.timeExpected = this.timeExpected || time;
+        this.timeToCall = Math.floor(Math.max(0, (1000.0 / this.desiredFps) - (this.timeExpected - time)));
 
         // time when the next call is expected if using timers
-        this.timeCallExpected = time + this.timeToCall;
+        this.timeExpected = time + this.timeToCall;
 
         // count the number of time.update calls
         this._frameCount++;
