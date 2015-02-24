@@ -82,8 +82,8 @@ Phaser.Game = function() {
     var game = construct(phaser_game, arguments);
 
     // Get the main canvas and add event listener to it
-    var canvasView = GC.app.makeCanvasBackedView(width, height);
-    app.canvas = canvasView.getCanvas();
+    app.canvasView = GC.app.makeCanvasBackedView(width, height);
+    app.canvas = app.canvasView.getCanvas();
 
     addEventListenerAPI(app.canvas);
     app.spoofMouseEvents(app, app.canvas);
@@ -104,8 +104,8 @@ exports = Class(GC.Application, function () {
 
     this.initUI = function () {
         this._gameLoaded = false;
-        this.scalex = 1;
-        this.scaley = 1;
+        this.input_scalex = 1;
+        this.input_scaley = 1;
 
         // Leave the clearing to pixi
         this.engine.updateOpts({
@@ -124,8 +124,8 @@ exports = Class(GC.Application, function () {
         var makeMouseEvent = function (evt) {
             evt.preventDefault = function() {};
             evt.changedTouches = [];
-            evt.pageX = evt.screenX = evt.clientX = evt.pt[1].x * this.scalex;
-            evt.pageY = evt.screenY = evt.clientY = evt.pt[1].y * this.scaley;
+            evt.pageX = evt.screenX = evt.clientX = evt.pt[1].x * this.input_scalex;
+            evt.pageY = evt.screenY = evt.clientY = evt.pt[1].y * this.input_scaley;
         }.bind(this);
 
         // Spoof mouse events with devkit input functions
@@ -153,6 +153,8 @@ exports = Class(GC.Application, function () {
         var image = new Image({ srcImage: canvas});
         var rootView = this.getRootView();
 
+        canvas.style.display = 'none';
+
         var iv = new View({
             image: image,
             width: rootView.style.width,
@@ -160,7 +162,7 @@ exports = Class(GC.Application, function () {
             parent: this.getRootView()
         });
         iv.render = function(ctx) {
-            image.render(ctx, 0, 0, width, height, 0, 0, this.style.width, this.style.height);
+            image.render(ctx, 0, 0, width, height, iv.style.left, iv.style.top, iv.style.width, iv.style.height);
         };
         iv.getCanvas = function() {
             return canvas;
@@ -193,8 +195,25 @@ exports = Class(GC.Application, function () {
         return config.useWeeby ? weeby.getGameView() : this.view;
     };
 
-    this.tick = function(dt) {
-        // TODO this should probably be in an "on resize" function
+    this.scaleGame = function(width, height) {
+        console.log('SCALING TO ', width, height);
+
+        this.canvasView.style.width = width;
+        this.canvasView.style.height = height;
+
+        this.input_scalex = this.game_width / width;
+        this.input_scaley = this.game_height / height;
+
+        // center the game
+        this.offsetGame((device.screen.width - width) / 2, (device.screen.height - height) / 2);
+    }
+
+    this.offsetGame = function(x, y) {
+        this.canvasView.style.left = x;
+        this.canvasView.style.top  = y;
+    };
+
+    this.try_rescale = function() {
         if (this.canvas) {
             var scr = device.screen;
 
@@ -202,16 +221,44 @@ exports = Class(GC.Application, function () {
                 this.last_width = scr.width;
                 this.last_height = scr.height;
 
-                if (scr.width > scr.height) {
-                    this.engine.scaleUI(scr.height, scr.width);
-                } else {
-                    this.engine.scaleUI(scr.width, scr.height);
-                }
+                var game_width = this.game_width;
+                var game_height = this.game_height;
 
-                this.scalex = this.game_width / scr.width;
-                this.scaley = this.game_height / scr.height;
+                var xsize, ysize;
+                var xscale, yscale;
+
+                switch (config.fit) {
+                case 'scale':
+                    this.scaleGame(scr.width, scr.height);
+                    break;
+
+                case 'max':
+                    xsize = game_width;
+                    ysize = game_height;
+                    xscale = scr.width / xsize;
+                    yscale = scr.height / ysize;
+
+                    if (xscale < yscale) {
+                        xsize *= xscale;
+                        ysize *= xscale;
+                    } else {
+                        xsize *= yscale;
+                        ysize *= yscale;
+                    }
+
+                    this.scaleGame(xsize, ysize);
+                    break;
+
+                default:
+                    console.error('Unrecognized value for config.fit');
+                }
             }
         }
-    }
+    };
+
+    this.tick = function(dt) {
+        // TODO this should probably be in an "on resize" function
+        this.try_rescale();
+    };
 });
 
