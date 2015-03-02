@@ -2,7 +2,7 @@
   "appID": "f0aaa471f737474caf89c43ea6ddf5a4",
   "dependencies": {
     "devkit-core": "https://github.com/gameclosure/devkit-core#v2.1.3",
-    "devkit-phaser": "https://github.com/weebygames/devkit-phaser.git#0.1.0"
+    "devkit-phaser": "https://github.com/weebygames/devkit-phaser.git#0.1.1"
   },
   "shortName": "breakout",
   "studio": {
